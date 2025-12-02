@@ -27,11 +27,9 @@ def AR_prediction(x,p,predict_steps):
     model_fit = model.fit()
     return model_fit.predict(start=len(x), end=len(x)+predict_steps)
 
-def AR_prediction_exo(x,m,p,predict_steps):
-    from statsmodels.tsa.ar_model import AutoReg
-    model = AutoReg(x, lags=p, exog=m)
-    model_fit = model.fit()
-    return model_fit.predict(start=len(x), end=len(x)+predict_steps,exog_oos=m[-predict_steps-1:])
+def avg_error(real,pred):
+    return np.mean(np.abs(real-pred))
+
 
 (ts_full,trend_full,seas_full,ns_full) = generate_time_series(2000) #for verifications with AR predictions later
 (ts,trend,seas,ns) = (ts_full[:1000],trend_full[:1000],seas_full[:1000],ns_full[:1000])
@@ -62,13 +60,16 @@ axs3[0].set_title('AR 200')
 axs3[1].plot(ts_full[1000:1101])
 axs3[1].set_title('Original Time Series (continuation)')
 
-fig4,axs4 = plt.subplots(3)
+min_err = float('inf')
 
-axs4[0].plot(AR_prediction_exo(ts, m=trend, p=200, predict_steps=100))
-axs4[0].set_title('AR 200 Trend Exo (m param)')
-axs4[1].plot(AR_prediction_exo(ts, m=seas, p=200, predict_steps=100))
-axs4[1].set_title('AR 200 Seasonal Exo (m param)')
-axs4[2].plot(ts_full[1000:1101])
-axs4[2].set_title('Original Time Series (continuation)')
+for p in range(1,100):
+    for m in range(1,10):
+        curr_err = avg_error(ts_full[1000:1001+m],AR_prediction(ts,p=p,predict_steps=m))
+        if curr_err<min_err:
+            min_err = curr_err
+            best_p = p
+            best_m = m
+
+print(f'Best p: {best_p}, Best m: {best_m}, with error: {min_err}')
 
 plt.show()
